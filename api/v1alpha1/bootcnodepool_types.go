@@ -209,6 +209,9 @@ type BootcNodePoolStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
+// +genclient
+// +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster,shortName=bnp
@@ -236,6 +239,7 @@ type BootcNodePool struct {
 	Status BootcNodePoolStatus `json:"status,omitzero"`
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:object:root=true
 
 // BootcNodePoolList contains a list of BootcNodePool.

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Package v1alpha1 contains API Schema definitions for the bootc v1alpha1 API group.
 // +kubebuilder:object:generate=true
-// +groupName=node.bootc.dev
 package v1alpha1
 
 import (
@@ -25,6 +23,12 @@ var (
 	// AddToScheme adds the types in this group-version to the given scheme.
 	AddToScheme = SchemeBuilder.AddToScheme
 )
+
+// Resource takes an unqualified resource and returns a GroupResource in this
+// API group. It is used by the generated listers.
+func Resource(resource string) schema.GroupResource {
+	return SchemeGroupVersion.WithResource(resource).GroupResource()
+}
 
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
