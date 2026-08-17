@@ -1,0 +1,239 @@
+# RBAC for the bootc-operator controller manager and node daemon.
+#
+# Names are prefixed with "bootc-operator-" to match the upstream
+# config/default kustomize namePrefix, and all namespaced subjects reference
+# the openshift-bootc-operator namespace.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bootc-operator-controller-manager
+  namespace: openshift-bootc-operator
+  annotations:
+    include.release.openshift.io/ibm-cloud-managed: "true"
+    include.release.openshift.io/self-managed-high-availability: "true"
+    include.release.openshift.io/single-node-developer: "true"
+  labels:
+    app.kubernetes.io/name: bootc-operator
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bootc-operator-daemon
+  namespace: openshift-bootc-operator
+  annotations:
+    include.release.openshift.io/ibm-cloud-managed: "true"
+    include.release.openshift.io/self-managed-high-availability: "true"
+    include.release.openshift.io/single-node-developer: "true"
+  labels:
+    app.kubernetes.io/name: bootc-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: bootc-operator-manager-role
+  annotations:
+    include.release.openshift.io/ibm-cloud-managed: "true"
+    include.release.openshift.io/self-managed-high-availability: "true"
+    include.release.openshift.io/single-node-developer: "true"
+  labels:
+    app.kubernetes.io/name: bootc-operator
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - pods/eviction
+  verbs:
+  - create
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  verbs:
+  - get
+- apiGroups:
+  - node.bootc.dev
+  resources:
+  - bootcnodepools
+  - bootcnodes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - node.bootc.dev
+  resources:
+  - bootcnodepools/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - node.bootc.dev
+  resources:
+  - bootcnodepools/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - node.bootc.dev
+  resources:
+  - bootcnodes/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: bootc-operator-daemon-role
+  annotations:
+    include.release.openshift.io/ibm-cloud-managed: "true"
+    include.release.openshift.io/self-managed-high-availability: "true"
+    include.release.openshift.io/single-node-developer: "true"
+  labels:
+    app.kubernetes.io/name: bootc-operator
+rules:
+- apiGroups:
+  - node.bootc.dev
+  resources:
+  - bootcnodes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - node.bootc.dev
+  resources:
+  - bootcnodes/status
+  verbs:
+  - get
+  - update
+  - patch
+# The daemon runs as a privileged, hostPID pod so it can drive bootc on the
+# host. Grant it use of the "privileged" SCC, mirroring the
+# machine-config-daemon.
+- apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - privileged
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: bootc-operator-manager-rolebinding
+  annotations:
+    include.release.openshift.io/ibm-cloud-managed: "true"
+    include.release.openshift.io/self-managed-high-availability: "true"
+    include.release.openshift.io/single-node-developer: "true"
+  labels:
+    app.kubernetes.io/name: bootc-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: bootc-operator-manager-role
+subjects:
+- kind: ServiceAccount
+  name: bootc-operator-controller-manager
+  namespace: openshift-bootc-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: bootc-operator-daemon-rolebinding
+  annotations:
+    include.release.openshift.io/ibm-cloud-managed: "true"
+    include.release.openshift.io/self-managed-high-availability: "true"
+    include.release.openshift.io/single-node-developer: "true"
+  labels:
+    app.kubernetes.io/name: bootc-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: bootc-operator-daemon-role
+subjects:
+- kind: ServiceAccount
+  name: bootc-operator-daemon
+  namespace: openshift-bootc-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: bootc-operator-leader-election-role
+  namespace: openshift-bootc-operator
+  annotations:
+    include.release.openshift.io/ibm-cloud-managed: "true"
+    include.release.openshift.io/self-managed-high-availability: "true"
+    include.release.openshift.io/single-node-developer: "true"
+  labels:
+    app.kubernetes.io/name: bootc-operator
+rules:
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: bootc-operator-leader-election-rolebinding
+  namespace: openshift-bootc-operator
+  annotations:
+    include.release.openshift.io/ibm-cloud-managed: "true"
+    include.release.openshift.io/self-managed-high-availability: "true"
+    include.release.openshift.io/single-node-developer: "true"
+  labels:
+    app.kubernetes.io/name: bootc-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: bootc-operator-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: bootc-operator-controller-manager
+  namespace: openshift-bootc-operator

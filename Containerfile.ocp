@@ -1,0 +1,37 @@
+# OpenShift component build for the bootc-operator.
+#
+# This ships the bootc-operator as a first-class OpenShift release payload
+# component. It uses the same builder and final base images as the
+# machine-config-operator so that the resulting image is consistent with the
+# rest of the OpenShift release.
+#
+# The OpenShift install manifests (CRDs, RBAC, namespace, deployment,
+# daemonset) live in the manifests/ directory and are copied into /manifests so
+# that `oc adm release new` picks them up and the cluster-version-operator
+# applies them during install/upgrade.
+#
+# Use RHEL 9 as the primary builder base, matching the machine-config-operator.
+FROM registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.26-openshift-5.0 AS rhel9-builder
+WORKDIR /go/src/github.com/bootc-dev/bootc-operator
+COPY . .
+# Build both the controller manager and the node daemon. Both binaries ship in
+# the same image; the deployment runs the manager and the daemonset runs the
+# daemon.
+#
+# The OpenShift builder defaults to GOFLAGS=-mod=vendor, but this project does
+# not vendor its dependencies, so build with -mod=mod instead.
+ENV GOFLAGS=-mod=mod
+RUN go build -o /tmp/manager ./cmd/controller/ && \
+    go build -o /tmp/daemon ./cmd/daemon/
+
+FROM registry.ci.openshift.org/ocp/5.0:base-rhel9
+# CVO-consumable install manifests (CRDs, RBAC, namespace, workloads,
+# image-references). oc adm release new reads /manifests/image-references and
+# rewrites the operator image placeholder throughout these manifests.
+COPY manifests /manifests
+# Copy the binaries into their final location.
+COPY --from=rhel9-builder /tmp/manager /tmp/daemon /usr/bin/
+ENTRYPOINT ["/usr/bin/manager"]
+# Mark this image as a release-payload operator so that oc adm release new
+# loads the manifests from /manifests.
+LABEL io.openshift.release.operator true

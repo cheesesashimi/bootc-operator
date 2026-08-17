@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: bootc-operator-daemon
+  namespace: openshift-bootc-operator
+  annotations:
+    exclude.release.openshift.io/internal-openshift-hosted: "true"
+    include.release.openshift.io/self-managed-high-availability: "true"
+    include.release.openshift.io/single-node-developer: "true"
+  labels:
+    app.kubernetes.io/name: bootc-operator
+    app.kubernetes.io/component: daemon
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: bootc-operator
+      app.kubernetes.io/component: daemon
+  template:
+    metadata:
+      annotations:
+        target.workload.openshift.io/management: '{"effect": "PreferredDuringScheduling"}'
+        openshift.io/required-scc: privileged
+      labels:
+        app.kubernetes.io/name: bootc-operator
+        app.kubernetes.io/component: daemon
+    spec:
+      nodeSelector:
+        bootc.dev/managed: ""
+      hostPID: true
+      containers:
+      - name: daemon
+        command:
+        - daemon
+        image: placeholder.url.oc.will.replace.this.org/placeholdernamespace:bootc-operator
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        securityContext:
+          privileged: true
+          runAsUser: 0
+          runAsGroup: 0
+        resources:
+          requests:
+            cpu: 10m
+            memory: 64Mi
+        terminationMessagePolicy: FallbackToLogsOnError
+      serviceAccountName: bootc-operator-daemon
+      priorityClassName: "system-node-critical"
+      terminationGracePeriodSeconds: 10
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+        effect: "NoSchedule"
+      - key: "node.kubernetes.io/unreachable"
+        operator: "Exists"
+        effect: "NoExecute"
+      - key: "node.kubernetes.io/not-ready"
+        operator: "Exists"
+        effect: "NoExecute"

@@ -13,3 +13,6 @@
 # Re-include Go module files
 !go.mod
 !go.sum
+
+# Re-include OpenShift install manifests (used by Containerfile.ocp)
+!manifests/

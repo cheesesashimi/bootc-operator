@@ -1,0 +1,11 @@
+kind: ImageStream
+apiVersion: image.openshift.io/v1
+spec:
+  tags:
+  # bootc-operator ships both the controller manager and the node daemon in a
+  # single image. oc adm release new rewrites the placeholder pullspec used by
+  # the deployment and daemonset to the release-pinned digest for this tag.
+  - name: bootc-operator
+    from:
+      kind: DockerImage
+      name: placeholder.url.oc.will.replace.this.org/placeholdernamespace:bootc-operator
