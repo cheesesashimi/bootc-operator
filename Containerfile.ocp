@@ -24,7 +24,14 @@ ENV GOFLAGS=-mod=mod
 RUN go build -o /tmp/manager ./cmd/controller/ && \
     go build -o /tmp/daemon ./cmd/daemon/
 
-FROM registry.ci.openshift.org/ocp/5.0:base-rhel9
+# Use the RHEL 10 base image for the final stage. The daemon runs host
+# commands via `nsenter --target 1 ... --env -- bootc ...`; the --env flag
+# strips the container's `container=oci` marker so bootc correctly introspects
+# the host. That flag requires util-linux >= 2.38, but base-rhel9 only ships
+# (and only has available in its repos) util-linux 2.37.4, which rejects --env
+# and breaks `bootc status`. base-rhel10 ships util-linux 2.40.2, where --env
+# works.
+FROM registry.ci.openshift.org/ocp/5.0:base-rhel10
 # CVO-consumable install manifests (CRDs, RBAC, namespace, workloads,
 # image-references). oc adm release new reads /manifests/image-references and
 # rewrites the operator image placeholder throughout these manifests.
